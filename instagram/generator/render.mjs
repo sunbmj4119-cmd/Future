@@ -44,12 +44,22 @@ h2{font-size:70px;font-weight:800;line-height:1.22;margin:44px 0 52px}
 .note{font-size:32px;line-height:1.5;font-weight:500}
 `;
 
-function frame(slide, i, n, post, inner, dark = false) {
-  const fg = dark ? C.white : C.ink;
-  const muted = dark ? 'rgba(255,255,255,.6)' : C.sub;
-  return `<!doctype html><html><head><meta charset="utf-8"><style>${base}</style></head>
-<body><div class="s" style="background:${dark ? C.navy : C.paper};color:${fg}">
-<div class="top"><span style="color:${dark ? C.yellow : C.navy}">${esc(post.brand)}</span><span style="color:${muted}">${i}/${n}</span></div>
+// 시리즈별 표지 색상 (피드 격자에서 시리즈가 한눈에 구분되도록)
+const THEMES = {
+  deep: { bg: C.navy, fg: C.white, accent: C.yellow, chipBg: C.yellow, chipFg: C.navy, muted: 'rgba(255,255,255,.6)', sub: 'rgba(255,255,255,.85)' },
+  deadline: { bg: C.yellow, fg: C.navy, accent: C.red, chipBg: C.navy, chipFg: C.yellow, muted: 'rgba(14,35,64,.6)', sub: 'rgba(14,35,64,.85)' },
+  calc: { bg: '#E7F4EC', fg: C.ink, accent: '#128C4B', chipBg: '#128C4B', chipFg: C.white, muted: C.sub, sub: '#2D3A4F' },
+};
+
+function frame(slide, i, n, post, inner, dark = false, theme = null) {
+  const fg = theme ? theme.fg : dark ? C.white : C.ink;
+  const muted = theme ? theme.muted : dark ? 'rgba(255,255,255,.6)' : C.sub;
+  const bg = theme ? theme.bg : dark ? C.navy : C.paper;
+  const brandColor = theme ? theme.accent : dark ? C.yellow : C.navy;
+  const H = post._H || 1350;
+  return `<!doctype html><html><head><meta charset="utf-8"><style>${base}html,body,.s{height:${H}px}</style></head>
+<body><div class="s" style="background:${bg};color:${fg}">
+<div class="top"><span style="color:${brandColor}">${esc(post.brand)}</span><span style="color:${muted}">${i}/${n}</span></div>
 ${inner}
 <div class="foot" style="color:${muted}"><span>${esc(post.handle)}</span>${i < n ? `<span style="display:flex;gap:12px;align-items:center">넘겨보기 ${icon.arrow(muted)}</span>` : '<span></span>'}</div>
 </div></body></html>`;
@@ -59,11 +69,13 @@ const chip = (label, bg, fg) => `<span class="chip" style="background:${bg};colo
 
 const render = {
   cover(s, i, n, p) {
+    const t = THEMES[p.series] || THEMES.deep;
+    const extra = Math.round(((p._H || 1350) - 1350) / 2);
     return frame(s, i, n, p, `
-<div style="margin-top:120px">${chip(s.kicker, C.yellow, C.navy)}</div>
+<div style="margin-top:${120 + extra}px">${chip(s.kicker, t.chipBg, t.chipFg)}</div>
 <h1 style="font-size:108px;margin-top:56px">${esc(s.title)}</h1>
-<div style="font-size:128px;font-weight:900;color:${C.yellow};margin-top:36px;line-height:1.1">${esc(s.highlight)}</div>
-<div style="font-size:44px;font-weight:600;margin-top:48px;color:rgba(255,255,255,.85)">${esc(s.sub)}</div>`, true);
+${s.highlight ? `<div style="font-size:128px;font-weight:900;color:${t.accent};margin-top:36px;line-height:1.1">${esc(s.highlight)}</div>` : ''}
+<div style="font-size:44px;font-weight:600;margin-top:48px;color:${t.sub}">${esc(s.sub)}</div>`, false, t);
   },
   list(s, i, n, p) {
     const items = s.items.map((t) => `
@@ -115,8 +127,10 @@ ${s.source ? `<div style="position:absolute;left:88px;right:88px;bottom:130px;fo
 const dir = resolve(process.argv[2] || '.');
 const wantJpg = process.argv.includes('--jpg');
 const post = JSON.parse(readFileSync(join(dir, 'post.json'), 'utf8'));
+// size: "4:5" (1080x1350, 기본) 또는 "3:4" (1080x1440, 프로필 격자에 꽉 참)
+post._H = post.size === '3:4' ? 1440 : 1350;
 const browser = await chromium.launch();
-const page = await browser.newPage({ viewport: { width: 1080, height: 1350 }, deviceScaleFactor: 1 });
+const page = await browser.newPage({ viewport: { width: 1080, height: post._H }, deviceScaleFactor: 1 });
 const n = post.slides.length;
 for (const [k, s] of post.slides.entries()) {
   const fn = render[s.type];

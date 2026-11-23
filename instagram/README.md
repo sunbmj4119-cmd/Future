@@ -5,9 +5,17 @@
 ## 사용법
 
 ```bash
-node instagram/generator/render.mjs instagram/posts/<폴더명>        # PNG 생성
+node instagram/generator/render.mjs instagram/posts/<폴더명>        # 카드뉴스 PNG 생성
 node instagram/generator/render.mjs instagram/posts/<폴더명> --jpg  # JPEG도 생성 (API 게시용)
+node instagram/generator/reel.mjs   instagram/posts/<폴더명>        # 같은 내용으로 릴스 reel.mp4 + reel-cover.png
+node instagram/generator/grid-preview.mjs 결과.png 이미지1.png ...   # 프로필 격자(3:4) 미리보기
 ```
+
+**post.json 공통 옵션**
+- `series`: 표지 색. `"deadline"`(노랑, 이번 주 마감) / `"deep"`(남색, 끝장 정리, 기본값) / `"calc"`(연두, 계산·비교)
+- `size`: `"4:5"`(1080×1350, 기본값) / `"3:4"`(1080×1440)
+
+자세한 설계는 [12 썸네일·릴스 가이드](../12_인스타_썸네일_릴스_가이드.md)를 보세요.
 
 - Node와 Playwright(Chromium)가 필요합니다.
 - Claude Code 클라우드 세션에서는 이미 설치되어 있습니다.
